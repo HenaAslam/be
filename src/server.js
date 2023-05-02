@@ -15,6 +15,7 @@ import googleStrategy from "./lib/auth/googleOauth.js";
 import userRouter from "./api/users/index.js";
 
 import createHttpError from "http-errors";
+import BoardRouter from "./api/boards/index.js";
 
 const expressServer = express();
 passport.use("google", googleStrategy);
@@ -47,6 +48,7 @@ expressServer.use(passport.initialize());
 
 // *************************** ENDPOINTS ***************************
 expressServer.use("/users", userRouter);
+expressServer.use("/boards", BoardRouter);
 
 // ************************* ERROR HANDLERS ************************
 expressServer.use(badRequestHandler);
