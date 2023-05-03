@@ -18,6 +18,7 @@ import createHttpError from "http-errors";
 import BoardRouter from "./api/boards/index.js";
 
 const expressServer = express();
+
 passport.use("google", googleStrategy);
 // **************************** SOCKET.IO **************************
 const httpServer = createServer(expressServer);
