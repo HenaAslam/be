@@ -26,6 +26,7 @@ userRouter.get(
   passport.authenticate("google", { session: false }),
   (req, res, next) => {
     try {
+      const { accessToken } = req.user;
       res.redirect(
         `${process.env.FE_DEV_URL}/main?accessToken=${req.user?.accessToken}`
       );
