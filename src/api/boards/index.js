@@ -4,7 +4,7 @@ import BoardsModel from "./model.js";
 import UsersModel from "../users/model.js";
 import { JWTAuthMiddleware } from "../../lib/auth/jwt.js";
 
-const BoardRouter = express();
+const BoardRouter = express.Router();
 
 BoardRouter.post("/", JWTAuthMiddleware, async (req, res, next) => {
   try {
@@ -50,5 +50,68 @@ BoardRouter.get("/", JWTAuthMiddleware, async (req, res, next) => {
     next(error);
   }
 });
+
+BoardRouter.get("/:boardId", async (req, res, next) => {
+  try {
+    const board = await BoardsModel.findById(req.params.boardId);
+    // .populate("creator", "username")
+    // // path: "user",
+    // //   select: "_id name surname image ",
+    // .populate("members.user", "username")
+    // .populate("columns.tasks");
+    res.send(board);
+  } catch (err) {
+    next(err);
+  }
+});
+
+BoardRouter.post("/:boardId/columns", async (req, res, next) => {
+  try {
+    const board = await BoardsModel.findById(req.params.boardId);
+    if (!board) {
+      return res.status(404).send("Board not found");
+    }
+    const newColumn = {
+      name: req.body.name,
+      tasks: [],
+    };
+    board.columns.push(newColumn);
+    await board.save();
+    res.json(newColumn);
+  } catch (err) {
+    next(err);
+  }
+});
+
+BoardRouter.patch(
+  "/:boardId/columns/:columnId/move",
+  async (req, res, next) => {
+    try {
+      const { boardId, columnId } = req.params;
+      const { destinationIndex } = req.body;
+
+      const board = await BoardsModel.findById(boardId);
+      if (!board) {
+        return res.status(404).send("Board not found");
+      }
+
+      const columnToMove = board.columns.find(
+        (column) => column._id.toString() === columnId
+      );
+      if (!columnToMove) {
+        return res.status(404).send("Column not found");
+      }
+
+      const currentIndex = board.columns.indexOf(columnToMove);
+      board.columns.splice(currentIndex, 1);
+      board.columns.splice(destinationIndex, 0, columnToMove);
+
+      await board.save();
+      res.json(board);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 export default BoardRouter;
