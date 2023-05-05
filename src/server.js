@@ -16,6 +16,7 @@ import userRouter from "./api/users/index.js";
 
 import createHttpError from "http-errors";
 import BoardRouter from "./api/boards/index.js";
+import taskRouter from "./api/tasks/index.js";
 
 const expressServer = express();
 
@@ -50,6 +51,7 @@ expressServer.use(passport.initialize());
 // *************************** ENDPOINTS ***************************
 expressServer.use("/users", userRouter);
 expressServer.use("/boards", BoardRouter);
+expressServer.use("/boards", taskRouter);
 
 // ************************* ERROR HANDLERS ************************
 expressServer.use(badRequestHandler);
