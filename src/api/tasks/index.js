@@ -31,4 +31,25 @@ taskRouter.post("/:boardId/columns/:columnId/tasks", async (req, res, next) => {
   }
 });
 
+taskRouter.get("/:boardId/columns/:columnId/tasks", async (req, res, next) => {
+  try {
+    const board = await BoardsModel.findById(req.params.boardId);
+    if (!board) {
+      return res.status(404).send("Board not found");
+    }
+    const column = board.columns.find(
+      (column) => column._id.toString() === req.params.columnId
+    );
+    if (!column) {
+      return res.status(404).send("Column not found");
+    }
+    const tasks = await TaskModel.find({ _id: { $in: column.tasks } });
+    //   .populate("assignedTo", "title")
+    //   .exec();
+    res.json(tasks);
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default taskRouter;

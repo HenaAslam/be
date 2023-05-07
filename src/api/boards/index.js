@@ -53,12 +53,10 @@ BoardRouter.get("/", JWTAuthMiddleware, async (req, res, next) => {
 
 BoardRouter.get("/:boardId", async (req, res, next) => {
   try {
-    const board = await BoardsModel.findById(req.params.boardId);
-    // .populate("creator", "username")
-    // // path: "user",
-    // //   select: "_id name surname image ",
-    // .populate("members.user", "username")
-    // .populate("columns.tasks");
+    const board = await BoardsModel.findById(req.params.boardId).populate({
+      path: "columns.tasks",
+      select: "title assignedTo dueDate description",
+    });
     res.send(board);
   } catch (err) {
     next(err);
@@ -115,3 +113,5 @@ BoardRouter.patch(
 );
 
 export default BoardRouter;
+
+//fetch board again when task is added and render it.
