@@ -21,6 +21,7 @@ taskRouter.post("/:boardId/columns/:columnId/tasks", async (req, res, next) => {
       description: req.body.description,
       assignedTo: req.body.assignedTo,
       dueDate: req.body.dueDate,
+      columnId: req.params.columnId,
     };
     const task = await TaskModel.create(newTask);
     column.tasks.push(task);
