@@ -6,6 +6,7 @@ const taskSchema = new Schema(
     description: { type: String },
     assignedTo: { type: Schema.Types.ObjectId, ref: "User" },
     dueDate: { type: Date },
+    columnId: { type: String, required: true },
   },
   { timestamps: true }
 );
