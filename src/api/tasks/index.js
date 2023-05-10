@@ -37,26 +37,59 @@ taskRouter.put(
   "/:boardId/columns/:columnId/tasks/:taskId",
   async (req, res, next) => {
     try {
-      const board = await BoardsModel.findById(req.params.boardId);
-      if (!board) {
-        return res.status(404).send("Board not found");
-      }
-      const column = board.columns.find(
-        (column) => column._id.toString() === req.params.columnId
+      console.log("grrrr");
+      const updatedTask = await TaskModel.findByIdAndUpdate(
+        req.params.taskId,
+        {
+          title: req.body.title,
+          description: req.body.description,
+          assignedTo: req.body.assignedTo,
+          dueDate: req.body.dueDate,
+          columnId: req.body.columnId || req.params.columnId,
+          position:
+            req.body.position || req.body.position === 0
+              ? req.body.position
+              : undefined,
+        },
+        { new: true, runValidators: true }
       );
-      if (!column) {
-        return res.status(404).send("Column not found");
+      if (updatedTask) {
+        const board = await BoardsModel.findOne({
+          "columns.tasks": req.params.taskId,
+        });
+        if (!board) {
+          return res.status(404).send("Board not found");
+        }
+
+        const column = board.columns.find((column) =>
+          column.tasks.includes(req.params.taskId)
+        );
+        if (!column) {
+          return res.status(404).send("Column not found");
+        }
+        const taskIndex = column.tasks.findIndex(
+          (taskId) => taskId.toString() === req.params.taskId
+        );
+
+        if (taskIndex === -1) {
+          return res.status(404).send("Task not found");
+        }
+        // const updatedColumn = { ...column };
+        // console.log("updd", updatedColumn);
+        // updatedColumn.tasks.splice(taskIndex, 1, updatedTask._id);
+        column.tasks.splice(taskIndex, 1, updatedTask._id);
+        const updatedBoard = await BoardsModel.findOneAndUpdate(
+          { "columns._id": column._id },
+          { $set: { "columns.$": column } },
+          { new: true }
+        );
+        res.json(updatedTask);
+      } else {
+        console.log("hi");
+        next(
+          createHttpError(404, `Task with id ${req.params.taskId} not found`)
+        );
       }
-      const task = await TaskModel.findById(req.params.taskId);
-      if (!task) {
-        return res.status(404).send("Task not found");
-      }
-      task.title = req.body.title;
-      task.description = req.body.description;
-      task.assignedTo = req.body.assignedTo;
-      task.dueDate = req.body.dueDate;
-      (task.position = column.tasks.length), await task.save();
-      res.json(task);
     } catch (err) {
       next(err);
     }
@@ -112,7 +145,7 @@ taskRouter.get("/:boardId/columns/:columnId/tasks", async (req, res, next) => {
 
 //moving tasks
 taskRouter.put(
-  "/:boardId/columns/:currentColumnId/tasks/:taskId",
+  "/:boardId/columns/:currentColumnId/tasks/:taskId/move",
   async (req, res, next) => {
     try {
       const board = await BoardsModel.findById(req.params.boardId);
