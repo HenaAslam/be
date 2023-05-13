@@ -4,6 +4,8 @@ import TaskModel from "./model.js";
 
 const taskRouter = express.Router();
 
+// add JWTAuthMiddleware for fetches.
+
 taskRouter.post("/:boardId/columns/:columnId/tasks", async (req, res, next) => {
   try {
     const board = await BoardsModel.findById(req.params.boardId);
@@ -143,56 +145,146 @@ taskRouter.get("/:boardId/columns/:columnId/tasks", async (req, res, next) => {
   }
 });
 
-//moving tasks
 taskRouter.put(
-  "/:boardId/columns/:currentColumnId/tasks/:taskId/move",
+  "/:boardId/columns/:columnId/tasks/:taskId/left",
   async (req, res, next) => {
     try {
-      const board = await BoardsModel.findById(req.params.boardId);
+      const { boardId, columnId, taskId } = req.params;
+      const board = await BoardsModel.findById(boardId);
       if (!board) {
-        return res.status(404).send("Board not found");
+        return res.status(404).json({ message: "Board not found" });
       }
 
-      const currentColumn = board.columns.find(
-        (column) => column._id.toString() === req.params.currentColumnId
+      const currentColumnIndex = board.columns.findIndex(
+        (column) => column._id.toString() === columnId
       );
-      if (!currentColumn) {
-        return res.status(404).send("Column not found");
-      }
-
-      const taskIndex = currentColumn.tasks.findIndex(
-        (task) => task._id.toString() === req.params.taskId
+      const taskIndex = board.columns[currentColumnIndex].tasks.findIndex(
+        (task) => task._id.toString() === taskId
       );
-      if (taskIndex === -1) {
-        return res.status(404).send("Task not found");
+      const task = board.columns[currentColumnIndex].tasks[taskIndex];
+
+      if (currentColumnIndex === 0) {
+        return res
+          .status(400)
+          .json({ message: "Task is already in the leftmost column" });
       }
 
-      const { newColumnId, newPosition } = req.body;
-
-      let newColumn = currentColumn;
-      if (newColumnId !== req.params.currentColumnId) {
-        newColumn = board.columns.find(
-          (column) => column._id.toString() === newColumnId
-        );
-        if (!newColumn) {
-          return res.status(404).send("New column not found");
-        }
-      }
-
-      if (newPosition >= newColumn.tasks.length) {
-        newColumn.tasks.push(currentColumn.tasks.splice(taskIndex, 1)[0]);
-      } else {
-        newColumn.tasks.splice(
-          newPosition,
-          0,
-          currentColumn.tasks.splice(taskIndex, 1)[0]
-        );
-      }
+      board.columns[currentColumnIndex].tasks.splice(taskIndex, 1);
+      board.columns[currentColumnIndex - 1].tasks.push(task);
 
       await board.save();
-      res.send("Task moved successfully");
-    } catch (err) {
-      next(err);
+
+      res.json(board);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+taskRouter.put(
+  "/:boardId/columns/:columnId/tasks/:taskId/right",
+  async (req, res, next) => {
+    try {
+      const { boardId, columnId, taskId } = req.params;
+      const board = await BoardsModel.findById(boardId);
+      if (!board) {
+        return res.status(404).json({ message: "Board not found" });
+      }
+
+      const currentColumnIndex = board.columns.findIndex(
+        (column) => column._id.toString() === columnId
+      );
+      const taskIndex = board.columns[currentColumnIndex].tasks.findIndex(
+        (task) => task._id.toString() === taskId
+      );
+      const task = board.columns[currentColumnIndex].tasks[taskIndex];
+
+      if (currentColumnIndex === board.columns.length - 1) {
+        return res
+          .status(400)
+          .json({ message: "Task is already in the rightmost column" });
+      }
+
+      board.columns[currentColumnIndex].tasks.splice(taskIndex, 1);
+      board.columns[currentColumnIndex + 1].tasks.push(task);
+
+      await board.save();
+
+      res.json(board);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+taskRouter.put(
+  "/:boardId/columns/:columnId/tasks/:taskId/top",
+  async (req, res, next) => {
+    try {
+      const { boardId, columnId, taskId } = req.params;
+      const board = await BoardsModel.findById(boardId);
+      if (!board) {
+        return res.status(404).json({ message: "Board not found" });
+      }
+
+      const currentColumnIndex = board.columns.findIndex(
+        (column) => column._id.toString() === columnId
+      );
+      const taskIndex = board.columns[currentColumnIndex].tasks.findIndex(
+        (task) => task._id.toString() === taskId
+      );
+      const task = board.columns[currentColumnIndex].tasks[taskIndex];
+
+      if (taskIndex === 0) {
+        return res
+          .status(400)
+          .json({ message: "Task is already at the top of the column" });
+      }
+
+      board.columns[currentColumnIndex].tasks.splice(taskIndex, 1);
+      board.columns[currentColumnIndex].tasks.splice(taskIndex - 1, 0, task);
+
+      await board.save();
+
+      res.json(board);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+taskRouter.put(
+  "/:boardId/columns/:columnId/tasks/:taskId/down",
+  async (req, res, next) => {
+    try {
+      const { boardId, columnId, taskId } = req.params;
+      const board = await BoardsModel.findById(boardId);
+      if (!board) {
+        return res.status(404).json({ message: "Board not found" });
+      }
+
+      const currentColumnIndex = board.columns.findIndex(
+        (column) => column._id.toString() === columnId
+      );
+      const taskIndex = board.columns[currentColumnIndex].tasks.findIndex(
+        (task) => task._id.toString() === taskId
+      );
+      const task = board.columns[currentColumnIndex].tasks[taskIndex];
+
+      if (taskIndex === board.columns[currentColumnIndex].tasks.length - 1) {
+        return res
+          .status(400)
+          .json({ message: "Task is already at the bottom of the column" });
+      }
+
+      board.columns[currentColumnIndex].tasks.splice(taskIndex, 1);
+      board.columns[currentColumnIndex].tasks.splice(taskIndex + 1, 0, task);
+
+      await board.save();
+
+      res.json(board);
+    } catch (error) {
+      next(error);
     }
   }
 );

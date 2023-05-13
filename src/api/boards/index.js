@@ -6,6 +6,8 @@ import { JWTAuthMiddleware } from "../../lib/auth/jwt.js";
 
 const BoardRouter = express.Router();
 
+// add JWTAuthMiddleware for fetches.
+
 BoardRouter.post("/", JWTAuthMiddleware, async (req, res, next) => {
   try {
     const user = await UsersModel.findById(req.user?._id);
@@ -63,6 +65,35 @@ BoardRouter.get("/:boardId", async (req, res, next) => {
   }
 });
 
+BoardRouter.delete("/:boardId", JWTAuthMiddleware, async (req, res, next) => {
+  try {
+    const boardId = req.params.boardId;
+    const board = await BoardsModel.findById(boardId);
+
+    if (!board) {
+      return res.status(404).send({ message: "Board not found" });
+    }
+
+    const user = await UsersModel.findById(req.user?._id);
+
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    if (String(board.creator) !== String(user._id)) {
+      return res
+        .status(403)
+        .send({ message: "You are not authorized to delete this board" });
+    }
+
+    await board.deleteOne();
+
+    res.send({ message: "Board deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
 BoardRouter.post("/:boardId/columns", async (req, res, next) => {
   try {
     const board = await BoardsModel.findById(req.params.boardId);
@@ -76,6 +107,24 @@ BoardRouter.post("/:boardId/columns", async (req, res, next) => {
     board.columns.push(newColumn);
     await board.save();
     res.json(newColumn);
+  } catch (err) {
+    next(err);
+  }
+});
+BoardRouter.delete("/:boardId/columns/:columnId", async (req, res, next) => {
+  try {
+    const { boardId, columnId } = req.params;
+    const board = await BoardsModel.findById(boardId);
+    if (!board) {
+      return res.status(404).send("Board not found");
+    }
+    const column = board.columns.id(columnId);
+    if (!column) {
+      return res.status(404).send("Column not found");
+    }
+    await column.deleteOne();
+    await board.save();
+    res.json({ message: "Column deleted successfully" });
   } catch (err) {
     next(err);
   }
